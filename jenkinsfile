@@ -16,18 +16,6 @@ pipeline {
             }
         }
 
-        stage('Install Java & Maven (if needed)') {
-            steps {
-                echo 'Installing Java & Maven (safe to run even if already installed)...'
-                sh '''
-                sudo apt-get update -y
-                sudo apt-get install -y openjdk-17-jdk maven || true
-                java -version || true
-                mvn -version || true
-                '''
-            }
-        }
-
         stage('Checkout') {
             steps {
                 echo 'Cloning repository...'
@@ -62,10 +50,8 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    echo 'Updating image version in deployment...'
-
                     sh """
-                    sed -i 's|Aniketj/techsolutions-app:latest|Aniketj/techsolutions-app:${IMAGE_TAG}|g' k8s/Aniketdeployment.yaml
+                    sed -i 's|Aniket/techsolutions-app:latest|Aniket/techsolutions-app:${IMAGE_TAG}|g' k8s/Aniketdeployment.yaml
                     """
 
                     sh "kubectl apply -f k8s/Aniketdeployment.yaml"
@@ -82,7 +68,6 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                echo 'Verifying deployment...'
                 sh "kubectl get pods -o wide"
                 sh "kubectl get svc"
                 sh "kubectl get ingress"
@@ -92,7 +77,6 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up local Docker images...'
             sh "docker rmi ${DOCKER_HUB_REPO}:${IMAGE_TAG} || true"
             sh "docker rmi ${DOCKER_HUB_REPO}:latest || true"
         }
@@ -102,7 +86,7 @@ pipeline {
         }
 
         failure {
-            echo '❌ Pipeline Failed! Check logs carefully.'
+            echo '❌ Pipeline Failed!'
         }
     }
 }
