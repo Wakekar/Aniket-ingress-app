@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_REPO = 'Aniketj/techsolutions-app'
+        APP_NAME = 'techsolutions'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo 'Cloning repository...'
+                git 'https://github.com/Wakekar/Aniket-ingress-app.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def tag = "${env.BUILD_NUMBER}"
+                    env.IMAGE_TAG = tag
+
+                    sh "docker build -t ${DOCKER_HUB_REPO}:${tag} ."
+                    sh "docker tag ${DOCKER_HUB_REPO}:${tag} ${DOCKER_HUB_REPO}:latest"
+                }
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh "echo $PASS | docker login -u $USER --password-stdin"
+                        sh "docker push ${DOCKER_HUB_REPO}:${env.IMAGE_TAG}"
+                        sh "docker push ${DOCKER_HUB_REPO}:latest"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    echo 'Updating image version in deployment...'
+
+                    sh """
+                    sed -i 's|Aniket/techsolutions-app:latest|Aniket/techsolutions-app:${IMAGE_TAG}|g' k8s/Aniketdeployment.yaml
+                    """
+
+                    sh "kubectl apply -f k8s/Aniketdeployment.yaml"
+                    sh "kubectl rollout status deployment/${APP_NAME}-deployment --timeout=300s"
+                }
+            }
+        }
+
+        stage('Deploy Ingress') {
+            steps {
+                sh "kubectl apply -f k8s/AniketIngress.yaml"
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh "kubectl get pods -o wide"
+                sh "kubectl get svc"
+                sh "kubectl get ingress"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Deployment Successful!'
+        }
+        failure {
+            echo '❌ Pipeline Failed!'
+        }
+    }
+}
