@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_REPO = 'Aniket/techsolutions-app'
+        DOCKER_HUB_REPO = 'aniketwakekar/techsolutions-app'
         APP_NAME = 'techsolutions'
     }
 
@@ -51,7 +51,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    sed -i 's|Aniket/techsolutions-app:latest|Aniket/techsolutions-app:${IMAGE_TAG}|g' k8s/Aniketdeployment.yaml
+                    sed -i 's|aniketwakekar/techsolutions-app:latest|Aniket/techsolutions-app:${IMAGE_TAG}|g' k8s/Aniketdeployment.yaml
                     """
 
                     sh "kubectl apply -f k8s/Aniketdeployment.yaml"
