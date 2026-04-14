@@ -51,7 +51,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    sed -i 's|aniketwakekar/techsolutions-app:latest|Aniket/techsolutions-app:${IMAGE_TAG}|g' k8s/Aniketdeployment.yaml
+                    sed -i "s|aniketwakekar/techsolutions-app:.*|aniketwakekar/techsolutions-app:${IMAGE_TAG}|g" k8s/Aniketdeployment.yaml
                     """
 
                     sh "kubectl apply -f k8s/Aniketdeployment.yaml"
